@@ -14,7 +14,8 @@ class Value:
         
         def _backward():
             self.grad += out.grad
-            other.grad += out.grad  
+            other.grad += out.grad
+                            
         out._backward = _backward          
                
         return out
@@ -26,6 +27,8 @@ class Value:
         def _backward():
             self.grad += other.data * out.grad
             other.grad += self.data * out.grad
+               
+            
         out._backward = _backward
         
         return out
@@ -37,6 +40,8 @@ class Value:
         def _backward():
             self.grad += out.grad
             other.grad += out.grad 
+            
+            
         out._backward = _backward
             
         return out
@@ -47,6 +52,8 @@ class Value:
         def _backward():
             assert isinstance(other, (int, float)), "only supporting int/float powers for now"
             self.grad += (other * self.data**(other-1)) * out.grad
+             
+            
         out._backward = _backward
         return out
     
@@ -55,12 +62,20 @@ class Value:
         x = self.data
         t = (math.exp(2*x) - 1) / (math.exp(2*x) + 1)  
         out = Value(t, (self,), 'tanh')
-        # print(f"tanh output: {out.data}")
+        
 
         def _backward():
-            self.grad += (1- t**2) * out.grad 
-            print(f'back tanh:{out.grad}')   
+            self.grad += (1- t**2) * out.grad   
         out._backward = _backward
+        return out
+    
+    def relu(self):
+        out = Value(0 if self.data < 0 else self.data, (self,), 'ReLU')
+
+        def _backward():
+            self.grad += (out.data > 0) * out.grad
+        out._backward = _backward
+
         return out
     
     #for backpropagation
@@ -115,18 +130,51 @@ class Value:
     def __repr__(self):
         return f"Value(data={self.data})"
 
+class Neuron:
+    def __init__(self,n_in):
+        self.weight = [Value(random.uniform(-1, 1)) for _ in range(n_in)]
+        self.bias = Value(random.uniform(-1,1))
+        
+    def __call__(self,x):
+        # ( W * n_in ) + b
+        act = sum((w * xi for w, xi in zip(self.weight, x)), self.bias)
+        return act.tanh()
 
+    def parameters(self):
+        return self.weight +[self.bias]
+    
+class Layer:
+    def __init__(self,n_in,n_nn):
+        self.neurons = [Neuron(n_in) for _ in range(n_nn)]
+    
+    def __call__(self,x):
+        out = [n(x) for n in self.neurons]
+        return out[0] if len(out) == 1 else out
+    
+    def parameters(self):
+        params = []
+        for i in self.neurons:
+            n_p = i.parameters()
+            params.extend(n_p)
+        return params
+    
 
+class MLP():
 
+    def __init__(self, n_in, li_nn):
+        sz = [n_in] + li_nn
+        self.layers = [Layer(sz[i], sz[i+1])for i in range(len(li_nn))]
 
-# a = Value(2)
-# b = Value(3)
-# c = a+ b
-# d = c**2
-# # e=d.tanh()
-# print(f'forwad : {d}')
-# print(f'backward : {d.backward()}')
-# print(f'd.grad: {d.grad}')
-# print(f'a.grad: {a.grad}')
-# print(f'b.grad: {b.grad}')
-# print(f'c.grad: {c.grad}')
+    def __call__(self, x):
+        for layer in self.layers:
+            final = layer(x)
+        return final
+    
+    def parameters(self):
+        parms =[]
+        for i in self.layers:
+            ps = i.parameters()
+            parms.extend(ps)
+        return parms
+    
+

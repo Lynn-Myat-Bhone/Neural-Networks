@@ -1,93 +1,61 @@
 import numpy as np 
 import matplotlib.pyplot as  plt
-from Engine import Value 
+from Engine import Value,MLP,Neuron,Layer 
 import  random
 
-
-class Neuron:
-    def __init__(self,n_in):
-        self.weight = [Value(random.uniform(-0.1, 0.1)) for _ in range(n_in)]
-        self.bias = Value(random.uniform(-0.1,0.1))
-        
-    def __call__(self,x):
-        # ( W * n_in ) + b
-        act = sum((w * xi for w, xi in zip(self.weight, x)), self.bias)
-        return act.tanh()
-
-    def parameters(self):
-        return self.weight +[self.bias]
-    
-class Layer:
-    def __init__(self,n_in,n_nn):
-        self.neurons = [Neuron(n_in) for _ in range(n_nn)]
-    
-    def __call__(self,x):
-        out = [n(x) for n in self.neurons]
-        return out[0] if len(out) == 1 else out
-    
-    def parameters(self):
-        params = []
-        for i in self.neurons:
-            n_p = i.parameters()
-            params.extend(n_p)
-        return params
-    
-
-class MLP():
-
-    def __init__(self, n_in, li_nn):
-        sz = [n_in] + li_nn
-        self.layers = [Layer(sz[i], sz[i+1])for i in range(len(li_nn))]
-
-    def __call__(self, x):
-        for layer in self.layers:
-            final = layer(x)
-        return final
-    
-    def parameters(self):
-        parms =[]
-        for i in self.layers:
-            ps = i.parameters()
-            parms.extend(ps)
-        return parms
-
-
-
-
-xs=[
-    [2.0,3.0,-1.0],
-    [3.0,-1.0,0.5],
-    [0.5,1.0,1.0],
-    [1.0,1.0,-1.0]    
+xs = [
+    [2.0, 3.0, -1.0],
+    [3.0, -1.0, 0.5],
+    [0.5, 1.0, 1.0],
+    [1.0, 1.0, -1.0],
 ]
-n = MLP(3,[4,4,1])
-ygt = [1.0,-1.0,-1.0,1.0] # desire target
-# ygt = [Value(target) for target in [1.0, -1.0, -1.0, 1.0]]#converto to Value 
+
+n = MLP(3,[2,3,1])
+
+ygt = [1.0,-1.0,-1.0,1.0]  # Targets
 
 
 
 y_pred = [n(x) for x in xs]
-# print(f'forwad : {y_pred}')
+learning_rate=.001
+epochs = 70
+for epoch in range(epochs):
+    # Forward pass
+    y_pred = [n(x) for x in xs]
+    
+    # Compute loss
+    loss = sum((correct - error)**2 for error, correct in zip(y_pred, ygt))
+    print(f"Epoch {epoch}, Loss: {loss.data}")
+    # print(ygt)
+    for i, (x, pred) in enumerate(zip(xs, y_pred)):
+        print(f"Input {i}: {x}, Prediction: {pred.data}")
+    # Backward pass
+    loss.backward()
+    
+    # Update parameters
+    for p in n.parameters():
+        p.data += -learning_rate * p.grad
 
 
-loss = sum((correct - error)**2 for error,correct in zip(y_pred,ygt))
-loss.backward()
+# loss = sum((correct - error)**2 for error,correct in zip(y_pred,ygt))
+# print(f'loss:{loss}')
+# loss.backward()
+     
+# for p in n.parameters():
+#     p.data += 0.01 * p.grad
+    
+# # Print forward pass predictions
+# print(ygt)
+# for i, (x, pred) in enumerate(zip(xs, y_pred)):
+#     print(f"Input {i}: {x}, Prediction: {pred.data}")
+    
+
+# # Inspect gradients for all parameters
+# for layer in n.layers:
+#     for neuron in layer.neurons:
+#         for weight in neuron.weight:
+#             print(f"Weight: {weight.data}, Grad: {weight.grad}")
+#         print(f"Bias: {neuron.bias.data}, Grad: {neuron.bias.grad}")
 
 
-
-
-
-
-# Inspect gradients for all parameters
-for i, param in enumerate(n.parameters()):
-    print(f"Parameter {i}: {param}, Gradient: {param.grad}")
-
-
-
-
-print(f'loss :{loss}')
-# print(len(n.parameters()))
-# print(n.layers[-1].neurons[-1].weight[-1].grad)
-# print(n.layers[0].neurons[0].weight[0].grad)
-# print(n.layers[0].neurons[0].bias)
-
+    
