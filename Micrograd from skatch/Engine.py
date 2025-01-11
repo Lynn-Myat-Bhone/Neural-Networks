@@ -55,9 +55,11 @@ class Value:
         x = self.data
         t = (math.exp(2*x) - 1) / (math.exp(2*x) + 1)  
         out = Value(t, (self,), 'tanh')
-        
+        # print(f"tanh output: {out.data}")
+
         def _backward():
-            self.grad += (1- t**2) * out.grad    
+            self.grad += (1- t**2) * out.grad 
+            print(f'back tanh:{out.grad}')   
         out._backward = _backward
         return out
     
@@ -111,7 +113,7 @@ class Value:
         return other * self**-1
     
     def __repr__(self):
-        return f"Value(data={self.data},grad ={self.grad})"
+        return f"Value(data={self.data})"
 
 
 
